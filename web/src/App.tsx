@@ -29,12 +29,22 @@ import {
   Settings,
   LogOut,
   Settings2,
-  Lock
+  Lock,
+  Target,
+  TrendingUp,
+  AlertTriangle
 } from 'lucide-react';
 import { motion, AnimatePresence } from 'motion/react';
 import { GoogleGenAI } from "@google/genai";
 import { MOCK_REPORTS } from './data';
 import { FinancialData, ChatMessage, Note } from './types';
+import ExplorerFolder from './components/ExplorerFolder';
+import ExplorerFile from './components/ExplorerFile';
+import SelectionButton from './components/SelectionButton';
+import InsightCard from './components/InsightCard';
+import SlashCommandItem from './components/SlashCommandItem';
+import ChatBubble from './components/ChatBubble';
+import InlineNote from './components/InlineNote';
 
 // Mock model selection for better context
 const MODEL_NAME = "gemini-3-flash-preview";
@@ -644,9 +654,9 @@ export default function App() {
                         <Activity className="w-3.5 h-3.5" /> CORE FOCUS AREAS
                       </h4>
                       <div className="space-y-4">
-                        <InsightCard label="Valuation Moat" desc="Analysis of ROE stability vs direct sales growth." />
-                        <InsightCard label="Systemic Risk" desc="Raw material cost sensitivity and pricing leverage." />
-                        <InsightCard label="Market Sentiment" desc="Direct-to-consumer channel expansion metrics." />
+                        <InsightCard icon={Target} label="Valuation Moat" desc="Analysis of ROE stability vs direct sales growth." />
+                        <InsightCard icon={AlertTriangle} label="Systemic Risk" desc="Raw material cost sensitivity and pricing leverage." />
+                        <InsightCard icon={TrendingUp} label="Market Sentiment" desc="Direct-to-consumer channel expansion metrics." />
                       </div>
                     </div>
                   </div>
@@ -656,15 +666,9 @@ export default function App() {
                     key={`chat-${idx}`} 
                     message={msg} 
                     onSourceClick={(s) => scrollToSource(`source-${s}`)}
+                    isStreaming={isTyping && idx === chatHistory.length - 1}
                   />
                 ))}
-                {isTyping && (
-                  <div className="flex gap-2 px-3">
-                    <div className="w-1.5 h-1.5 bg-claude-accent rounded-full animate-bounce [animation-delay:-0.3s]"></div>
-                    <div className="w-1.5 h-1.5 bg-claude-accent rounded-full animate-bounce [animation-delay:-0.15s]"></div>
-                    <div className="w-1.5 h-1.5 bg-claude-accent rounded-full animate-bounce"></div>
-                  </div>
-                )}
                 <div ref={chatBottomRef} />
               </div>
 
@@ -708,164 +712,16 @@ export default function App() {
 }
 
 // --- Sub-components for Refactored UI ---
-function ExplorerFolder({ title, icon: Icon = Folder, children, defaultOpen = false, active = false }: { title: string; icon?: React.ElementType; children?: React.ReactNode; defaultOpen?: boolean; active?: boolean }) {
-  const [isOpen, setIsOpen] = useState(defaultOpen);
-  return (
-    <div className="select-none">
-      <div 
-        className={`tree-node group ${active ? 'tree-node-active' : ''}`}
-        onClick={() => setIsOpen(!isOpen)}
-      >
-        {isOpen ? <ChevronDown className="w-3.5 h-3.5 opacity-30" /> : <ChevronRight className="w-3.5 h-3.5 opacity-30" />}
-        <Icon className={`w-4 h-4 ${active ? 'text-claude-accent' : 'text-claude-text-secondary opacity-50'} group-hover:text-claude-accent transition-colors`} />
-        <span className="truncate font-bold tracking-widest uppercase text-[10px] text-claude-text-secondary">{title}</span>
-        <div className="ml-auto opacity-0 group-hover:opacity-60 flex items-center gap-2">
-          <Plus className="w-3 h-3 hover:text-claude-accent" />
-          <MoreVertical className="w-3 h-3 hover:text-claude-accent" />
-        </div>
-      </div>
-      {isOpen && (
-        <div className="relative ml-2">
-          <div className="guide-line"></div>
-          <div className="pl-4">{children}</div>
-        </div>
-      )}
-    </div>
-  );
-}
 
-function ExplorerFile({ title, icon: Icon = FileText, active = false, onClick, status }: { title: string; icon?: React.ElementType; active?: boolean; onClick?: () => void; status?: 'opened' | 'draft' }) {
-  return (
-    <div 
-      className={`tree-node group ${active ? 'tree-node-active' : ''}`}
-      onClick={onClick}
-    >
-      <Icon className={`w-4 h-4 ${active ? 'text-claude-accent' : 'text-claude-text-secondary opacity-40'} group-hover:text-claude-accent transition-colors`} />
-      <span className="truncate font-medium">{title}</span>
-      {status === 'opened' && <div className="ml-auto w-1.5 h-1.5 rounded-full bg-claude-accent shadow-[0_0_8px_rgba(0,122,204,0.3)]"></div>}
-    </div>
-  );
-}
 
-function SelectionButton({ icon: Icon, label, onClick }: { icon: any, label: string, onClick: () => void }) {
-  return (
-    <button 
-      onClick={onClick}
-      className="flex items-center gap-1.5 px-3 py-1.5 hover:bg-black/5 rounded-full transition-all text-claude-text-primary border border-transparent hover:border-black/5"
-    >
-      <Icon className="w-3.5 h-3.5 text-claude-accent" />
-      <span className="text-[12px] font-semibold">{label}</span>
-    </button>
-  );
-}
 
-function InsightCard({ label, desc }: { label: string, desc: string }) {
-  return (
-    <div className="group border-b border-claude-border last:border-none pb-4 pt-1 hover:px-1 transition-all cursor-pointer">
-      <div className="text-[12px] font-bold text-claude-text-primary mb-1 group-hover:text-claude-accent transition-colors">{label}</div>
-      <div className="text-[11px] text-claude-text-secondary font-medium leading-relaxed group-hover:text-claude-text-primary">{desc}</div>
-    </div>
-  );
-}
 
-function SlashCommandItem({ label, desc, onClick }: { label: string, desc: string, onClick: () => void }) {
-  return (
-    <div 
-      className="px-3 py-2 hover:bg-white/10 cursor-pointer flex items-center justify-between"
-      onClick={onClick}
-    >
-      <span className="text-[12px] font-bold text-white">/{label}</span>
-      <span className="text-[10px] text-white/40 tracking-wider font-bold uppercase">{desc}</span>
-    </div>
-  );
-}
 
-function ChatBubble({ message, onSourceClick }: { message: ChatMessage; onSourceClick?: (source: string) => void; key?: React.Key }) {
-  const isAssistant = message.role === 'assistant';
-  return (
-    <div className={`flex gap-3 ${isAssistant ? '' : 'flex-row-reverse'}`}>
-      <div className={`max-w-[96%] space-y-2`}>
-        <div className={`claude-card p-5 text-[14px] leading-relaxed relative ${
-          isAssistant 
-            ? 'bg-claude-paper text-claude-text-primary' 
-            : 'bg-claude-accent text-white border-transparent'
-        }`}>
-          {isAssistant ? (
-             <div className="prose prose-sm max-w-none prose-p:mb-3 last:prose-p:mb-0">
-               {message.content.split('\n').map((para, i) => <p key={i} className="mb-3 last:mb-0">{para}</p>)}
-             </div>
-          ) : (
-            <div className="font-semibold">{message.content}</div>
-          )}
-           {isAssistant && message.sources && message.sources.length > 0 && (
-              <div className="mt-4 pt-4 border-t border-claude-border/50 flex items-center justify-between">
-                 <div className="flex flex-wrap gap-1.5">
-                   {message.sources.map(s => (
-                     <span 
-                       key={s}
-                       onClick={() => onSourceClick?.(s)}
-                       className="text-[10px] font-bold text-claude-accent uppercase tracking-wider bg-claude-accent/5 px-2 py-0.5 rounded cursor-pointer hover:bg-claude-accent/10 transition-colors"
-                     >
-                       RE: {s}
-                     </span>
-                   ))}
-                 </div>
-                 <div className="flex gap-4 text-claude-text-secondary opacity-40">
-                    <button className="hover:text-claude-accent transition-colors"><Copy className="w-3.5 h-3.5" /></button>
-                 </div>
-              </div>
-           )}
-        </div>
-      </div>
-    </div>
-  );
-}
 
-function InlineNote({ note, onUpdate, onDelete }: { note: Note; onUpdate: (text: string) => void; onDelete: () => void; key?: React.Key }) {
-  const [isExpanded, setIsExpanded] = useState(false);
-  
-  return (
-    <div className="my-8">
-      <div 
-        className={`flex items-center gap-3 px-4 py-2 rounded-lg transition-all border font-sans ${isExpanded ? 'claude-card bg-claude-accent/5! border-claude-accent/20! text-claude-accent shadow-md' : 'bg-claude-sidebar border-transparent text-claude-text-secondary hover:text-claude-text-primary cursor-pointer'}`}
-        onClick={() => setIsExpanded(!isExpanded)}
-      >
-        <StickyNote className="w-4 h-4" />
-        <span className="text-[12px] font-bold tracking-widest uppercase">Analytical Note: "{note.selection.slice(0, 24)}..."</span>
-        <div className="ml-auto opacity-40">
-          {isExpanded ? <ChevronDown className="w-4 h-4" /> : <ChevronRight className="w-4 h-4" />}
-        </div>
-      </div>
-      
-      <AnimatePresence>
-        {isExpanded && (
-          <motion.div
-            initial={{ height: 0, opacity: 0 }}
-            animate={{ height: 'auto', opacity: 1 }}
-            exit={{ height: 0, opacity: 0 }}
-            className="overflow-hidden"
-          >
-            <div className="claude-card rounded-t-none! border-t-0 p-8 relative">
-              <button 
-                onClick={(e) => { e.stopPropagation(); onDelete(); }}
-                className="absolute top-6 right-6 text-claude-text-secondary opacity-20 hover:text-red-500 hover:opacity-100 transition-all font-bold"
-              >
-                <X className="w-4 h-4" />
-              </button>
-              <textarea 
-                autoFocus
-                className="w-full bg-transparent border-none p-0 text-[15px] font-medium font-serif focus:ring-0 text-claude-text-primary resize-none min-h-[120px] leading-relaxed placeholder:text-claude-text-secondary/30"
-                placeholder="Log internal financial analysis findings..."
-                value={note.text}
-                onChange={(e) => onUpdate(e.target.value)}
-              />
-              <div className="mt-6 text-[10px] text-claude-text-secondary opacity-50 font-bold flex justify-end uppercase tracking-[0.3em] pt-4 border-t border-claude-border/30">
-                STAMP: {new Date(note.timestamp).toLocaleTimeString()}
-              </div>
-            </div>
-          </motion.div>
-        )}
-      </AnimatePresence>
-    </div>
-  );
-}
+
+
+
+
+
+
+

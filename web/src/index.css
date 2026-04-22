@@ -21,14 +21,14 @@
   --font-serif: "Source Serif 4", serif;
   --font-mono: "JetBrains Mono", monospace;
 
-  /* Claude-Style Warm Light Palette - Low glare, professional paper feel */
-  --color-claude-paper: #FDFBF7; /* Unified workbench background */
-  --color-claude-sidebar: #F3F3F2; /* Warm gray sidebar */
-  --color-claude-ai: #F9F9FA; 
-  --color-claude-border: #E6E6E3;
-  --color-claude-accent: #007ACC; 
-  --color-claude-text-primary: #1F1F1F;
-  --color-claude-text-secondary: #666665;
+  /* Refined Palette */
+  --color-claude-paper: #FDFCFB; /* Slightly warmer paper color */
+  --color-claude-sidebar: #F5F4F3; /* Softer sidebar */
+  --color-claude-ai: #F9F9F8; 
+  --color-claude-border: #EAE9E7;
+  --color-claude-accent: #4A90E2; /* A calmer, more professional blue */
+  --color-claude-text-primary: #1A1A1A; /* Deeper black for better contrast */
+  --color-claude-text-secondary: #6A6A69; /* Slightly adjusted for readability */
 }
 
 @layer base {
@@ -45,10 +45,10 @@
     @apply bg-claude-paper text-claude-text-primary border-b-claude-accent;
   }
   .tree-node {
-    @apply flex items-center gap-1.5 py-1.5 px-4 text-[13.5px] hover:bg-black/5 cursor-pointer transition-all duration-75 text-claude-text-primary relative;
+    @apply flex items-center gap-1.5 py-1.5 px-4 text-[13.5px] hover:bg-claude-accent/5 cursor-pointer transition-all duration-150 text-claude-text-primary relative rounded-md;
   }
   .tree-node-active {
-    @apply bg-claude-accent/10 text-claude-text-primary font-semibold border-l-2 border-l-claude-accent;
+    @apply bg-claude-accent/10 text-claude-accent font-semibold;
   }
   .resizer {
     @apply w-[1px] hover:w-[2px] bg-claude-border hover:bg-claude-accent transition-all cursor-col-resize z-10;
