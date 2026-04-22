@@ -1,0 +1,68 @@
+/* ✅ 删除原来的 Google Fonts 导入行 */
+@import "tailwindcss";
+
+/* ✅ 新增：本地 Lato 字体声明（400+700 两个字重） */
+@font-face {
+  font-family: "Lato";
+  font-weight: 400;
+  src: url("./assets/fonts/Lato-Regular.ttf") format("truetype");
+  font-display: swap; /* 字体加载前显示系统字体，避免空白 */
+}
+
+@font-face {
+  font-family: "Lato";
+  font-weight: 700;
+  src: url("./assets/fonts/Lato-Bold.ttf") format("truetype");
+  font-display: swap;
+}
+
+@theme {
+  --font-sans: "Lato", ui-sans-serif, system-ui, sans-serif;
+  --font-serif: "Source Serif 4", serif;
+  --font-mono: "JetBrains Mono", monospace;
+
+  /* Claude-Style Warm Light Palette - Low glare, professional paper feel */
+  --color-claude-paper: #FDFBF7; /* Unified workbench background */
+  --color-claude-sidebar: #F3F3F2; /* Warm gray sidebar */
+  --color-claude-ai: #F9F9FA; 
+  --color-claude-border: #E6E6E3;
+  --color-claude-accent: #007ACC; 
+  --color-claude-text-primary: #1F1F1F;
+  --color-claude-text-secondary: #666665;
+}
+
+@layer base {
+  body {
+    @apply bg-claude-paper text-claude-text-primary font-sans antialiased selection:bg-[#D9EFFF];
+  }
+}
+
+@layer components {
+  .vscode-tab {
+    @apply h-[35px] px-4 text-[12px] font-medium border-r border-claude-border bg-claude-sidebar text-claude-text-secondary cursor-pointer flex items-center gap-2 hover:bg-black/5 hover:text-claude-text-primary transition-all duration-150 border-b-2 border-b-transparent;
+  }
+  .vscode-tab-active {
+    @apply bg-claude-paper text-claude-text-primary border-b-claude-accent;
+  }
+  .tree-node {
+    @apply flex items-center gap-1.5 py-1.5 px-4 text-[13.5px] hover:bg-black/5 cursor-pointer transition-all duration-75 text-claude-text-primary relative;
+  }
+  .tree-node-active {
+    @apply bg-claude-accent/10 text-claude-text-primary font-semibold border-l-2 border-l-claude-accent;
+  }
+  .resizer {
+    @apply w-[1px] hover:w-[2px] bg-claude-border hover:bg-claude-accent transition-all cursor-col-resize z-10;
+  }
+  .workbench-container {
+    @apply flex-1 flex flex-col bg-claude-paper overflow-hidden;
+  }
+  .guide-line {
+    @apply absolute left-[21px] top-0 bottom-0 w-px bg-claude-border/60;
+  }
+  .claude-card {
+    @apply bg-white border border-black/5 rounded-xl shadow-sm hover:translate-y-px transition-all;
+  }
+  .floating-pill {
+    @apply bg-white/80 backdrop-blur-xl border border-black/10 rounded-full shadow-lg flex items-center p-1.5;
+  }
+}
