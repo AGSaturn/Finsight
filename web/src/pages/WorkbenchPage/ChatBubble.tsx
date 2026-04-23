@@ -1,6 +1,6 @@
 import React from 'react';
 import { Copy } from 'lucide-react';
-import { ChatMessage } from '../types';
+import { ChatMessage } from '../../types';
 import Typewriter from './Typewriter';
 
 function ChatBubble({ message, onSourceClick, isStreaming }: { message: ChatMessage; onSourceClick?: (source: string) => void; isStreaming?: boolean; key?: React.Key }) {

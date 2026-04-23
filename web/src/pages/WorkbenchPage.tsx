@@ -39,13 +39,13 @@ import { motion, AnimatePresence } from 'framer-motion';
 import { GoogleGenAI } from "@google/genai";
 import { MOCK_REPORTS } from '../data';
 import { FinancialData, ChatMessage, Note } from '../types';
-import ExplorerFolder from '../components/ExplorerFolder';
-import ExplorerFile from '../components/ExplorerFile';
-import SelectionButton from '../components/SelectionButton';
-import InsightCard from '../components/InsightCard';
-import SlashCommandItem from '../components/SlashCommandItem';
-import ChatBubble from '../components/ChatBubble';
-import InlineNote from '../components/InlineNote';
+import ExplorerFolder from './WorkbenchPage/ExplorerFolder';
+import ExplorerFile from './WorkbenchPage/ExplorerFile';
+import SelectionButton from './WorkbenchPage/SelectionButton';
+import InsightCard from './WorkbenchPage/InsightCard';
+import SlashCommandItem from './WorkbenchPage/SlashCommandItem';
+import ChatBubble from './WorkbenchPage/ChatBubble';
+import InlineNote from './WorkbenchPage/InlineNote';
 
 // Mock model selection for better context
 const MODEL_NAME = "gemini-3-flash-preview";

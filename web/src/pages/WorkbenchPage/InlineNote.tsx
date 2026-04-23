@@ -1,7 +1,7 @@
 import React, { useState } from 'react';
 import { motion, AnimatePresence } from 'motion/react';
 import { StickyNote, ChevronDown, ChevronRight, X } from 'lucide-react';
-import { Note } from '../types';
+import { Note } from '../../types';
 
 function InlineNote({ note, onUpdate, onDelete }: { note: Note; onUpdate: (text: string) => void; onDelete: () => void; key?: React.Key }) {
   const [isExpanded, setIsExpanded] = useState(false);
