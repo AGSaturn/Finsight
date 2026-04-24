@@ -13,6 +13,8 @@ import {
   Coins,
   History,
   Info,
+  User,
+  Send,
   Target,
   TrendingUp,
   AlertTriangle
@@ -213,6 +215,16 @@ export default function WorkbenchPage() {
                 </ExplorerFolder>
                 </ExplorerFolder>
 
+                <ExplorerFolder title="对话历史" icon={History}>
+                  {chatHistory.map((chat, index) => (
+                    <ExplorerFile
+                      key={index}
+                      title={chat.content.substring(0, 30) + "..."}
+                      icon={chat.role === 'user' ? User : Terminal}
+                    />
+                  ))}
+                </ExplorerFolder>
+
 
               </div>
             </motion.aside>
@@ -356,7 +368,13 @@ export default function WorkbenchPage() {
                   <Terminal className="w-3.5 h-3.5" />
                   ANALYSIS STACK: NODIALOG
                 </div>
-                <History className="w-3.5 h-3.5 text-claude-text-secondary opacity-40 hover:opacity-100 transition-opacity cursor-pointer" />
+                <div className="flex items-center gap-2">
+                  <Plus 
+                    onClick={() => setChatHistory([])} 
+                    className="w-4 h-4 text-claude-text-secondary opacity-40 hover:opacity-100 transition-opacity cursor-pointer"
+                  />
+                  <History className="w-3.5 h-3.5 text-claude-text-secondary opacity-40 hover:opacity-100 transition-opacity cursor-pointer" />
+                </div>
               </div>
 
               {/* Chat View / Analysis History */}
@@ -388,31 +406,31 @@ export default function WorkbenchPage() {
 
               {/* Command Input Area */}
               <div className="p-5 bg-claude-sidebar border-t border-claude-border text-claude-text-primary shrink-0">
-                <div className="relative group">
-                  <div className="absolute left-3.5 top-1/2 -translate-y-1/2 text-claude-text-secondary opacity-40 group-focus-within:text-claude-accent group-focus-within:opacity-100 transition-all">
-                    <Terminal className="w-4 h-4" />
-                  </div>
-                  <input
-                    type="text"
+                <div className="relative">
+                  <textarea
+                    rows={3}
                     value={userInput}
                     onChange={(e) => setUserInput(e.target.value)}
                     onKeyDown={(e) => {
-                      if (e.key === 'Enter' && userInput.trim()) {
+                      if (e.key === 'Enter' && !e.shiftKey) {
+                        e.preventDefault();
                         handleAskAI(userInput);
                         setUserInput('');
                       }
                     }}
-                    placeholder="Ask Intelligence Node..."
-                    className="w-full pl-11 pr-4 py-2.5 bg-claude-ai border border-claude-border rounded-lg text-[13px] focus:outline-none focus:bg-white focus:border-claude-accent transition-all font-medium placeholder:text-claude-text-secondary placeholder:opacity-40"
+                    placeholder="Ask Intelligence Node... (Shift+Enter for new line)"
+                    className="w-full pl-4 pr-12 py-3 bg-claude-ai border border-claude-border rounded-lg text-[13px] focus:outline-none focus:bg-white focus:border-claude-accent transition-all font-medium placeholder:text-claude-text-secondary placeholder:opacity-40 resize-none"
                   />
-                  {userInput.startsWith('/') && (
-                    <div className="absolute bottom-full left-0 right-0 mb-3 bg-[#111] text-white rounded-xl shadow-2xl py-2 z-50 border border-white/10 overflow-hidden backdrop-blur-md">
-                      <div className="px-4 py-2 text-[10px] text-white/30 font-bold uppercase tracking-[0.3em] border-b border-white/5 mb-1">Slash Stack Commands</div>
-                      <SlashCommandItem label="summary" desc="全文摘要" onClick={() => { setUserInput('/summary'); handleAskAI('请对该全文进行核心摘要总结'); }} />
-                      <SlashCommandItem label="risk" desc="风险识别" onClick={() => { setUserInput('/risk'); handleAskAI('请识别该财报中的潜在财务及经营风险'); }} />
-                      <SlashCommandItem label="peer" desc="同行对比" onClick={() => { setUserInput('/peer'); handleAskAI('请将该公司与其行业龙头进行多维对比分析'); }} />
-                    </div>
-                  )}
+                  <button 
+                    onClick={() => {
+                      handleAskAI(userInput);
+                      setUserInput('');
+                    }}
+                    className="absolute bottom-3 right-3 p-2 bg-claude-accent text-white rounded-md hover:opacity-90 transition-opacity disabled:opacity-30 disabled:cursor-not-allowed"
+                    disabled={!userInput.trim()}
+                  >
+                    <Send className="w-4 h-4" />
+                  </button>
                 </div>
               </div>
             </motion.aside>
