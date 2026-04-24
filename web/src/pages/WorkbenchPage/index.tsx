@@ -37,15 +37,15 @@ import {
 // 【修改1】修正 Framer Motion 导入路径
 import { motion, AnimatePresence } from 'framer-motion';
 import { GoogleGenAI } from "@google/genai";
-import { MOCK_REPORTS } from '../data';
-import { FinancialData, ChatMessage, Note } from '../types';
-import ExplorerFolder from './WorkbenchPage/ExplorerFolder';
-import ExplorerFile from './WorkbenchPage/ExplorerFile';
-import SelectionButton from './WorkbenchPage/SelectionButton';
-import InsightCard from './WorkbenchPage/InsightCard';
-import SlashCommandItem from './WorkbenchPage/SlashCommandItem';
-import ChatBubble from './WorkbenchPage/ChatBubble';
-import InlineNote from './WorkbenchPage/InlineNote';
+import { MOCK_REPORTS } from '../../data';
+import { FinancialData, ChatMessage, Note } from '../../types';
+import ExplorerFolder from './ExplorerFolder';
+import ExplorerFile from './ExplorerFile';
+import SelectionButton from './SelectionButton';
+import InsightCard from './InsightCard';
+import SlashCommandItem from './SlashCommandItem';
+import ChatBubble from './ChatBubble';
+import InlineNote from './InlineNote';
 
 // Mock model selection for better context
 const MODEL_NAME = "gemini-3-flash-preview";
