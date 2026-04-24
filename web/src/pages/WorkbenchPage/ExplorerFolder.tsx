@@ -1,7 +1,14 @@
-import React, { useState } from 'react';
+import React, { useState, PropsWithChildren } from 'react';
 import { ChevronDown, ChevronRight, Folder, Plus, MoreVertical } from 'lucide-react';
 
-function ExplorerFolder({ title, icon: Icon = Folder, children, defaultOpen = false, active = false }: { title: string; icon?: React.ElementType; children?: React.ReactNode; defaultOpen?: boolean; active?: boolean }) {
+interface ExplorerFolderProps {
+  title: string;
+  icon?: React.ElementType;
+  defaultOpen?: boolean;
+  active?: boolean;
+}
+
+function ExplorerFolder({ title, icon: Icon = Folder, children, defaultOpen = false, active = false }: PropsWithChildren<ExplorerFolderProps>) {
   const [isOpen, setIsOpen] = useState(defaultOpen);
   return (
     <div className="select-none">

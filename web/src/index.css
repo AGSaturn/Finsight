@@ -54,7 +54,7 @@
     @apply w-[1px] hover:w-[2px] bg-claude-border hover:bg-claude-accent transition-all cursor-col-resize z-10;
   }
   .workbench-container {
-    @apply flex-1 flex flex-col bg-claude-paper overflow-hidden;
+    @apply flex-1 flex flex-col bg-claude-paper;
   }
   .guide-line {
     @apply absolute left-[21px] top-0 bottom-0 w-px bg-claude-border/60;

@@ -1,35 +1,18 @@
 import React, { useState, useEffect, useRef, useMemo } from 'react';
 import { 
-  ChevronLeft, 
-  ChevronRight, 
-  ChevronDown,
-  Search, 
   Plus, 
   X, 
   FileText, 
-  MessageSquare, 
   StickyNote, 
-  BookOpen, 
-  Star, 
   Folder, 
   MoreVertical,
   Zap,
-  Save,
-  Copy,
   Layout,
   Terminal,
   Activity,
   Coins,
-  ShieldCheck,
   History,
-  Command,
-  Maximize2,
   Info,
-  User,
-  Settings,
-  LogOut,
-  Settings2,
-  Lock,
   Target,
   TrendingUp,
   AlertTriangle
@@ -63,48 +46,11 @@ export default function WorkbenchPage() {
   const [userInput, setUserInput] = useState('');
   const [isNoteDirty, setIsNoteDirty] = useState<Record<string, boolean>>({});
   const [notes, setNotes] = useState<Note[]>([]);
-  const [isLoggedIn, setIsLoggedIn] = useState(false);
-  const [user, setUser] = useState<{ email: string; name: string } | null>(null);
-  const [showLoginModal, setShowLoginModal] = useState(false);
-  const [showSettingsModal, setShowSettingsModal] = useState(false);
   const [userSettings, setUserSettings] = useState({
     fontSize: 'medium',
     themeIntensity: 'warm',
     autoAnalyze: true
   });
-
-  // Load from localStorage
-  useEffect(() => {
-    const savedUser = localStorage.getItem('fin-user');
-    const savedSettings = localStorage.getItem('fin-settings');
-    if (savedUser) {
-      setUser(JSON.parse(savedUser));
-      setIsLoggedIn(true);
-    }
-    if (savedSettings) {
-      setUserSettings(JSON.parse(savedSettings));
-    }
-  }, []);
-
-  const handleLogin = (email: string) => {
-    const mockUser = { email, name: email.split('@')[0] };
-    setUser(mockUser);
-    setIsLoggedIn(true);
-    setShowLoginModal(false);
-    localStorage.setItem('fin-user', JSON.stringify(mockUser));
-  };
-
-  const handleLogout = () => {
-    setUser(null);
-    setIsLoggedIn(false);
-    localStorage.removeItem('fin-user');
-  };
-
-  const updateSettings = (newSettings: Partial<typeof userSettings>) => {
-    const updated = { ...userSettings, ...newSettings };
-    setUserSettings(updated);
-    localStorage.setItem('fin-settings', JSON.stringify(updated));
-  };
 
   // 【修改2】安全初始化 Google GenAI
   const ai = useMemo(() => {
@@ -121,9 +67,9 @@ export default function WorkbenchPage() {
   const chatBottomRef = useRef<HTMLDivElement>(null);
 
   // Auto scroll chat
-  useEffect(() => {
-    chatBottomRef.current?.scrollIntoView({ behavior: 'smooth' });
-  }, [chatHistory]);
+  // useEffect(() => {
+  //   chatBottomRef.current?.scrollIntoView({ behavior: 'smooth', block: 'nearest' });
+  // }, [chatHistory]);
 
   const activeReport = useMemo(() => 
     MOCK_REPORTS.find(r => r.ticker === activeTabId) || MOCK_REPORTS[0]
@@ -219,7 +165,7 @@ export default function WorkbenchPage() {
   };
 
   return (
-      <div className="flex flex-1 overflow-hidden relative">
+      <div className="flex flex-1 relative">
         {/* Left Sidebar: Claude Explorer */}
         <AnimatePresence>
           {leftSidebarVisible && (
@@ -227,7 +173,7 @@ export default function WorkbenchPage() {
               initial={{ width: 0 }}
               animate={{ width: leftWidth }}
               exit={{ width: 0 }}
-              className="border-r border-claude-border bg-claude-ai flex flex-col shrink-0 overflow-hidden relative"
+              className="border-r border-claude-border bg-claude-ai flex flex-col shrink-0"
             >
               <div className="h-[35px] flex items-center px-4 justify-between border-b border-claude-border shrink-0 bg-claude-sidebar">
                 <span className="text-[10px] font-black text-claude-text-secondary uppercase tracking-[0.2em]">Resource Browser</span>
@@ -239,55 +185,42 @@ export default function WorkbenchPage() {
               
               <div className="flex-1 overflow-y-auto py-2">
                 <ExplorerFolder title="PORTFOLIO" icon={Coins} defaultOpen>
-                  <ExplorerFolder title="CONSUMER SECTOR" icon={Folder}>
-                    <ExplorerFolder title="Moutai (600519)" icon={Activity} active={activeTabId === '600519'}>
+                  <ExplorerFolder title="CONSUMER SECTOR" icon={Folder} defaultOpen>
+                  {MOCK_REPORTS.map(report => (
+                    <ExplorerFolder 
+                      key={report.ticker}
+                      title={`${report.company} (${report.ticker})`} 
+                      icon={report.ticker === '600519' ? Activity : Layout} 
+                      active={activeTabId === report.ticker}
+                      defaultOpen={activeTabId === report.ticker}
+                    >
                       <ExplorerFolder title="基本信息" icon={Info}>
                         <ExplorerFile title="AI 简要分析" icon={Zap} />
                       </ExplorerFolder>
                       <ExplorerFolder title="财报" icon={FileText} defaultOpen>
                         <ExplorerFile 
-                          title="2024 年度报告" 
-                          active={activeTabId === '600519'} 
-                          onClick={() => openReport('600519')}
-                          status="opened"
-                        />
-                        <ExplorerFile title="2024 Q1 季度报告" />
-                      </ExplorerFolder>
-                      <ExplorerFolder title="笔记" icon={StickyNote}>
-                        <ExplorerFile title="核心壁垒分析" icon={StickyNote} />
-                      </ExplorerFolder>
-                    </ExplorerFolder>
-                    <ExplorerFolder title="Apple (AAPL)" icon={Layout}>
-                      <ExplorerFolder title="基本信息" icon={Info}>
-                        <ExplorerFile title="AI 简要分析" icon={Zap} />
-                      </ExplorerFolder>
-                      <ExplorerFolder title="财报" icon={FileText} defaultOpen>
-                        <ExplorerFile 
-                          title="2024 Q1 10-K" 
-                          active={activeTabId === 'AAPL'} 
-                          onClick={() => openReport('AAPL')}
+                          title={report.period}
+                          active={activeTabId === report.ticker} 
+                          onClick={() => openReport(report.ticker)}
+                          status={openTabs.includes(report.ticker) ? "opened" : undefined}
                         />
                       </ExplorerFolder>
                       <ExplorerFolder title="笔记" icon={StickyNote}>
-                        <ExplorerFile title="Competitor Analysis" icon={StickyNote} />
+                        <ExplorerFile title={report.ticker === '600519' ? "核心壁垒分析" : "Competitor Analysis"} icon={StickyNote} />
                       </ExplorerFolder>
                     </ExplorerFolder>
-                  </ExplorerFolder>
+                  ))}
+                </ExplorerFolder>
                 </ExplorerFolder>
 
-                <div className="mt-8">
-                  <ExplorerFolder title="RECENT ANALYSIS">
-                    <ExplorerFile title="Moutai Net Margin YoY" />
-                    <ExplorerFile title="Apple Services Growth" />
-                  </ExplorerFolder>
-                </div>
+
               </div>
             </motion.aside>
           )}
         </AnimatePresence>
 
         {/* Workbench: Tabs and Reader */}
-        <main className="workbench-container relative" ref={mainRef}>
+        <main className="workbench-container relative min-h-0" ref={mainRef}>
           {/* Tabs - Claude Warm Tabs */}
           <div className="h-[35px] bg-claude-sidebar flex items-center overflow-x-auto no-scrollbar shrink-0 border-b border-claude-border">
             {openTabs.map(ticker => {
@@ -416,7 +349,7 @@ export default function WorkbenchPage() {
               initial={{ width: 0 }}
               animate={{ width: rightWidth }}
               exit={{ width: 0 }}
-              className="border-l border-claude-border bg-claude-ai flex flex-col shrink-0 overflow-hidden"
+              className="border-l border-claude-border bg-claude-ai flex flex-col shrink-0"
             >
               <div className="h-[35px] border-b border-claude-border flex items-center justify-between px-4 shrink-0 bg-claude-sidebar">
                 <div className="flex items-center gap-2 font-bold text-[10px] tracking-widest text-claude-text-secondary uppercase">
@@ -427,7 +360,7 @@ export default function WorkbenchPage() {
               </div>
 
               {/* Chat View / Analysis History */}
-              <div className="flex-1 overflow-y-auto p-5 space-y-6">
+              <div className="flex-1 overflow-y-auto p-5 space-y-6 min-h-0">
                 {chatHistory.length === 0 && (
                   <div className="h-full flex flex-col gap-6">
                     <div className="p-6 claude-card">
@@ -454,7 +387,7 @@ export default function WorkbenchPage() {
               </div>
 
               {/* Command Input Area */}
-              <div className="p-5 bg-claude-sidebar border-t border-claude-border text-claude-text-primary">
+              <div className="p-5 bg-claude-sidebar border-t border-claude-border text-claude-text-primary shrink-0">
                 <div className="relative group">
                   <div className="absolute left-3.5 top-1/2 -translate-y-1/2 text-claude-text-secondary opacity-40 group-focus-within:text-claude-accent group-focus-within:opacity-100 transition-all">
                     <Terminal className="w-4 h-4" />
