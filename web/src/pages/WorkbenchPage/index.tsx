@@ -78,6 +78,8 @@ export default function WorkbenchPage() {
   });
   // PRD: 左侧导航Tab状态
   const [leftNavTab, setLeftNavTab] = useState<'tree' | 'recent'>('tree');
+  const [contextMenu, setContextMenu] = useState<{ x: number, y: number, nodeId: string } | null>(null);
+  const [editingNodeId, setEditingNodeId] = useState<string | null>(null);
 
   // PRD: 模拟 IndexedDB 数据
   const [portfolioNodes, setPortfolioNodes] = useState<PortfolioNode[]>([
@@ -180,11 +182,23 @@ export default function WorkbenchPage() {
   };
 
   const handleDeleteNode = (id: string) => {
-    // TODO: PRD 2.6 - 实现删除节点
-    // 1. 显示二次确认弹窗
-    // 2. 更新 portfolioNodes 状态
-    // 3. 从 IndexedDB 中删除
-    console.log('Deleting node:', id);
+    setPortfolioNodes(prev => {
+      const nodesToDelete = new Set<string>([id]);
+      let changed = true;
+      while (changed) {
+        changed = false;
+        const sizeBefore = nodesToDelete.size;
+        prev.forEach(node => {
+          if (node.parentId && nodesToDelete.has(node.parentId)) {
+            nodesToDelete.add(node.id);
+          }
+        });
+        if (nodesToDelete.size > sizeBefore) {
+          changed = true;
+        }
+      }
+      return prev.filter(node => !nodesToDelete.has(node.id));
+    });
   };
 
   const handleMoveNode = (id: string, newParentId: string | null) => {
@@ -196,14 +210,16 @@ export default function WorkbenchPage() {
   };
 
   const handleRenameNode = (id: string, newName: string) => {
-    // TODO: PRD 2.6 - 实现重命名
-    // 1. 更新节点的 name
-    // 2. 更新 portfolioNodes 状态
-    // 3. 更新 IndexedDB
     setPortfolioNodes(prev => 
       prev.map(n => n.id === id ? { ...n, name: newName, isNew: false } : n)
     );
-    console.log(`Renaming node ${id} to ${newName}`);
+    setEditingNodeId(null);
+  };
+
+  const handleContextMenu = (e: React.MouseEvent, nodeId: string) => {
+    e.preventDefault();
+    e.stopPropagation();
+    setContextMenu({ x: e.clientX, y: e.clientY, nodeId });
   };
 
   const handleUpdateHistory = (uniqueId: string, companyName: string) => {
@@ -332,8 +348,7 @@ export default function WorkbenchPage() {
   // PRD: 递归渲染节点组件
   const RenderNode: React.FC<{ node: PortfolioNode }> = ({ node }) => {
     if (node.type === 'folder') {
-      // PRD: 为新文件夹提供内联编辑
-      if (node.isNew) {
+      if (node.isNew || editingNodeId === node.id) {
         return (
           <div className="flex items-center p-1.5 pl-3">
             <Folder className="w-4 h-4 mr-2 shrink-0" />
@@ -358,6 +373,8 @@ export default function WorkbenchPage() {
           icon={Folder}
           isOpen={expandedKeys.has(node.id)}
           onToggle={() => toggleFolder(node.id)}
+          onAddNode={(e) => { e.stopPropagation(); handleAddNode('folder', node.id); }}
+          onMoreClick={(e) => handleContextMenu(e, node.id)}
         >
           {node.children?.sort((a,b) => a.order - b.order).map(child => <RenderNode key={child.id} node={child} />)}
         </ExplorerFolder>
@@ -382,6 +399,32 @@ export default function WorkbenchPage() {
   return (
       <div className="flex flex-1 relative">
         {/* Left Sidebar: Claude Explorer */}
+        {contextMenu && (
+          <div 
+            className="fixed z-50 bg-claude-sidebar border border-claude-border rounded-md shadow-lg p-1 text-sm text-claude-text-primary"
+            style={{ top: contextMenu.y, left: contextMenu.x }}
+            onMouseLeave={() => setContextMenu(null)}
+          >
+            <div 
+              className="px-3 py-1.5 hover:bg-claude-ai rounded cursor-pointer"
+              onClick={() => {
+                setEditingNodeId(contextMenu.nodeId);
+                setContextMenu(null);
+              }}
+            >
+              重命名
+            </div>
+            <div 
+              className="px-3 py-1.5 hover:bg-claude-ai rounded cursor-pointer text-red-500"
+              onClick={() => {
+                handleDeleteNode(contextMenu.nodeId);
+                setContextMenu(null);
+              }}
+            >
+              删除
+            </div>
+          </div>
+        )}
         <AnimatePresence>
           {leftSidebarVisible && (
             <motion.aside 
