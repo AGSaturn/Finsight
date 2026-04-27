@@ -17,7 +17,9 @@ import {
   Send,
   Target,
   TrendingUp,
-  AlertTriangle
+  AlertTriangle,
+  Search, // PRD: 搜索图标
+  Star // PRD: 资产树图标
 } from 'lucide-react';
 // 【修改1】修正 Framer Motion 导入路径
 import { motion, AnimatePresence } from 'framer-motion';
@@ -31,6 +33,27 @@ import InsightCard from './InsightCard';
 import SlashCommandItem from './SlashCommandItem';
 import ChatBubble from './ChatBubble';
 import InlineNote from './InlineNote';
+
+// PRD: 定义数据结构
+interface PortfolioNode {
+  id: string; 
+  type: 'folder' | 'stock';
+  name: string; 
+  parentId: string | null; 
+  order: number; 
+  uniqueId?: string; 
+  // 前端特定状态
+  children?: PortfolioNode[];
+  isNew?: boolean; // 用于新建文件夹时的编辑状态
+  newReport?: boolean; // PRD: 新财报蓝点
+}
+
+interface VisitHistoryRecord {
+  id: string;
+  uniqueId: string;
+  companyName: string;
+  lastAccessedAt: number;
+}
 
 // Mock model selection for better context
 const MODEL_NAME = "gemini-3-flash-preview";
@@ -53,6 +76,146 @@ export default function WorkbenchPage() {
     themeIntensity: 'warm',
     autoAnalyze: true
   });
+  // PRD: 左侧导航Tab状态
+  const [leftNavTab, setLeftNavTab] = useState<'tree' | 'recent'>('tree');
+
+  // PRD: 模拟 IndexedDB 数据
+  const [portfolioNodes, setPortfolioNodes] = useState<PortfolioNode[]>([
+    { id: 'folder-1', type: 'folder', name: '核心持仓', parentId: null, order: 0 },
+    { id: 'stock-600519', type: 'stock', name: '贵州茅台', parentId: 'folder-1', order: 0, uniqueId: '600519', newReport: true },
+    { id: 'folder-2', type: 'folder', name: '观察列表', parentId: null, order: 1 },
+    { id: 'folder-3', type: 'folder', name: '科技股', parentId: 'folder-2', order: 0 },
+    { id: 'stock-AAPL', type: 'stock', name: '苹果公司', parentId: 'folder-3', order: 0, uniqueId: 'AAPL' },
+    { id: 'stock-MSFT', type: 'stock', name: '微软', parentId: 'folder-3', order: 1, uniqueId: 'MSFT' },
+    { id: 'stock-PDD', type: 'stock', name: '拼多多', parentId: 'folder-2', order: 1, uniqueId: 'PDD', newReport: true },
+  ]);
+
+  const [visitHistory, setVisitHistory] = useState<VisitHistoryRecord[]>([
+    { id: 'hist-1', uniqueId: '600519', companyName: '贵州茅台', lastAccessedAt: Date.now() - 1000 * 60 * 5 },
+    { id: 'hist-2', uniqueId: 'AAPL', companyName: '苹果公司', lastAccessedAt: Date.now() - 1000 * 60 * 60 * 2 },
+  ]);
+
+  const [expandedKeys, setExpandedKeys] = useState<Set<string>>(new Set(['folder-1', 'folder-2', 'folder-3']));
+
+  // PRD: 将扁平数据转换为树形结构
+  const portfolioTree = useMemo(() => {
+    const tree: PortfolioNode[] = [];
+    const map = new Map<string, PortfolioNode>();
+    const roots: PortfolioNode[] = [];
+
+    portfolioNodes.forEach(node => {
+      map.set(node.id, { ...node, children: [] });
+    });
+
+    portfolioNodes.forEach(node => {
+      const parent = node.parentId ? map.get(node.parentId) : null;
+      const currentNode = map.get(node.id)!;
+      if (parent) {
+        parent.children?.push(currentNode);
+      } else {
+        roots.push(currentNode);
+      }
+    });
+    return roots;
+  }, [portfolioNodes]);
+
+  // PRD: 文件夹展开/折叠逻辑
+  const toggleFolder = (id: string) => {
+    setExpandedKeys(prev => {
+      const newSet = new Set(prev);
+      if (newSet.has(id)) {
+        newSet.delete(id);
+      } else {
+        newSet.add(id);
+      }
+      return newSet;
+    });
+  };
+
+  // PRD: 格式化相对时间
+  const formatRelativeTime = (timestamp: number) => {
+    const now = new Date();
+    const date = new Date(timestamp);
+    const diff = now.getTime() - date.getTime();
+    const diffDays = Math.floor(diff / (1000 * 60 * 60 * 24));
+
+    if (diffDays === 0) {
+      return `今天 ${date.getHours()}:${date.getMinutes().toString().padStart(2, '0')}`;
+    }
+    return `${(date.getMonth() + 1).toString().padStart(2, '0')}-${date.getDate().toString().padStart(2, '0')}`;
+  };
+
+  // --- PRD 功能占位符 ---
+  // 未来这些函数将与 IndexedDB 和后端 API 交互
+
+  const handleSearch = (query: string) => {
+    // TODO: PRD 2.5 - 实现公司搜索
+    // 1. 防抖处理
+    // 2. 调用后端 API: GET /api/v1/companies/search?q={query}
+    // 3. 在UI中显示搜索结果
+    console.log('Searching for:', query);
+  };
+
+  const handleAddNode = (type: 'folder' | 'stock', parentId: string | null = null) => {
+    // TODO: PRD 2.2 & 2.5 - 实现添加文件夹或公司
+    // 1. 创建一个新的 PortfolioNode 对象
+    // 2. 更新 portfolioNodes 状态
+    // 3. 将新节点写入 IndexedDB
+    if (type === 'folder') {
+      const newNode: PortfolioNode = {
+        id: `new-folder-${Date.now()}`,
+        type: 'folder',
+        name: '新建文件夹',
+        parentId,
+        order: portfolioNodes.filter(n => n.parentId === parentId).length,
+        isNew: true,
+      };
+      setPortfolioNodes(prev => [...prev, newNode]);
+      // 自动展开父文件夹
+      if (parentId) {
+        setExpandedKeys(prev => new Set(prev).add(parentId));
+      }
+    }
+    console.log(`Adding ${type} to ${parentId || 'root'}`);
+  };
+
+  const handleDeleteNode = (id: string) => {
+    // TODO: PRD 2.6 - 实现删除节点
+    // 1. 显示二次确认弹窗
+    // 2. 更新 portfolioNodes 状态
+    // 3. 从 IndexedDB 中删除
+    console.log('Deleting node:', id);
+  };
+
+  const handleMoveNode = (id: string, newParentId: string | null) => {
+    // TODO: PRD 2.6 - 实现移动节点
+    // 1. 更新节点的 parentId
+    // 2. 更新 portfolioNodes 状态
+    // 3. 更新 IndexedDB
+    console.log(`Moving node ${id} to ${newParentId}`);
+  };
+
+  const handleRenameNode = (id: string, newName: string) => {
+    // TODO: PRD 2.6 - 实现重命名
+    // 1. 更新节点的 name
+    // 2. 更新 portfolioNodes 状态
+    // 3. 更新 IndexedDB
+    setPortfolioNodes(prev => 
+      prev.map(n => n.id === id ? { ...n, name: newName, isNew: false } : n)
+    );
+    console.log(`Renaming node ${id} to ${newName}`);
+  };
+
+  const handleUpdateHistory = (uniqueId: string, companyName: string) => {
+    // TODO: PRD 2.3 - 更新访问历史
+    // 1. 检查记录是否存在，存在则更新时间，否则创建新记录
+    // 2. 确保历史记录不超过20条
+    // 3. 更新 visitHistory 状态
+    // 4. 写入 IndexedDB
+    console.log('Updating history for:', uniqueId);
+  };
+
+  // --- End of Placeholders ---
 
   // 【修改2】安全初始化 Google GenAI
   const ai = useMemo(() => {
@@ -166,6 +329,56 @@ export default function WorkbenchPage() {
     setSelection(null);
   };
 
+  // PRD: 递归渲染节点组件
+  const RenderNode: React.FC<{ node: PortfolioNode }> = ({ node }) => {
+    if (node.type === 'folder') {
+      // PRD: 为新文件夹提供内联编辑
+      if (node.isNew) {
+        return (
+          <div className="flex items-center p-1.5 pl-3">
+            <Folder className="w-4 h-4 mr-2 shrink-0" />
+            <input
+              type="text"
+              defaultValue={node.name}
+              autoFocus
+              onBlur={(e) => handleRenameNode(node.id, e.target.value)}
+              onKeyDown={(e) => {
+                if (e.key === 'Enter') {
+                  handleRenameNode(node.id, (e.target as HTMLInputElement).value);
+                }
+              }}
+              className="bg-claude-ai border border-claude-accent rounded px-1 py-0.5 text-sm w-full"
+            />
+          </div>
+        )
+      }
+      return (
+        <ExplorerFolder
+          title={node.name}
+          icon={Folder}
+          isOpen={expandedKeys.has(node.id)}
+          onToggle={() => toggleFolder(node.id)}
+        >
+          {node.children?.sort((a,b) => a.order - b.order).map(child => <RenderNode key={child.id} node={child} />)}
+        </ExplorerFolder>
+      );
+    }
+
+    if (node.type === 'stock') {
+      return (
+        <ExplorerFile
+          title={node.name}
+          active={activeTabId === node.uniqueId}
+          onClick={() => openReport(node.uniqueId!)}
+          status={openTabs.includes(node.uniqueId!) ? "opened" : undefined}
+          newReport={node.newReport}
+        />
+      );
+    }
+
+    return null;
+  };
+
   return (
       <div className="flex flex-1 relative">
         {/* Left Sidebar: Claude Explorer */}
@@ -175,57 +388,72 @@ export default function WorkbenchPage() {
               initial={{ width: 0 }}
               animate={{ width: leftWidth }}
               exit={{ width: 0 }}
-              className="border-r border-claude-border bg-claude-ai flex flex-col shrink-0"
+              className="border-r border-claude-border bg-claude-sidebar flex flex-col shrink-0"
             >
-              <div className="h-[35px] flex items-center px-4 justify-between border-b border-claude-border shrink-0 bg-claude-sidebar">
-                <span className="text-[10px] font-black text-claude-text-secondary uppercase tracking-[0.2em]">Resource Browser</span>
+              {/* PRD: 顶部搜索框 */}
+              <div className="h-[40px] flex items-center px-3 gap-2 border-b border-claude-border shrink-0">
+                <Search className="w-4 h-4 text-claude-text-secondary" />
+                <input 
+                  type="text"
+                  placeholder="搜索公司名称/代码"
+                  className="bg-transparent text-sm w-full focus:outline-none text-claude-text-primary placeholder:text-claude-text-secondary"
+                />
+              </div>
+
+              {/* PRD: Tab切换 */}
+              <div className="h-[35px] flex items-center justify-between border-b border-claude-border shrink-0 bg-claude-sidebar px-2">
+                <div className="flex items-center gap-1">
+                  <button 
+                    onClick={() => setLeftNavTab('tree')}
+                    className={`flex items-center gap-2 px-3 py-1 rounded text-xs font-semibold transition-colors ${leftNavTab === 'tree' ? 'bg-claude-ai text-claude-text-primary' : 'text-claude-text-secondary hover:bg-claude-ai'}`}>
+                    <Star className="w-3.5 h-3.5" />
+                    资产树
+                  </button>
+                  <button 
+                    onClick={() => setLeftNavTab('recent')}
+                    className={`flex items-center gap-2 px-3 py-1 rounded text-xs font-semibold transition-colors ${leftNavTab === 'recent' ? 'bg-claude-ai text-claude-text-primary' : 'text-claude-text-secondary hover:bg-claude-ai'}`}>
+                    <History className="w-3.5 h-3.5" />
+                    最近
+                  </button>
+                </div>
                 <div className="flex gap-2">
-                   <Plus className="w-3.5 h-3.5 text-claude-text-secondary cursor-pointer hover:text-claude-accent" />
+                   <Plus 
+                    onClick={() => handleAddNode('folder')}
+                    className="w-3.5 h-3.5 text-claude-text-secondary cursor-pointer hover:text-claude-accent" />
                    <MoreVertical className="w-3.5 h-3.5 text-claude-text-secondary cursor-pointer" />
                 </div>
               </div>
               
               <div className="flex-1 overflow-y-auto py-2">
-                <ExplorerFolder title="PORTFOLIO" icon={Coins} defaultOpen>
-                  <ExplorerFolder title="CONSUMER SECTOR" icon={Folder} defaultOpen>
-                  {MOCK_REPORTS.map(report => (
-                    <ExplorerFolder 
-                      key={report.ticker}
-                      title={`${report.company} (${report.ticker})`} 
-                      icon={report.ticker === '600519' ? Activity : Layout} 
-                      active={activeTabId === report.ticker}
-                      defaultOpen={activeTabId === report.ticker}
-                    >
-                      <ExplorerFolder title="基本信息" icon={Info}>
-                        <ExplorerFile title="AI 简要分析" icon={Zap} />
-                      </ExplorerFolder>
-                      <ExplorerFolder title="财报" icon={FileText} defaultOpen>
-                        <ExplorerFile 
-                          title={report.period}
-                          active={activeTabId === report.ticker} 
-                          onClick={() => openReport(report.ticker)}
-                          status={openTabs.includes(report.ticker) ? "opened" : undefined}
-                        />
-                      </ExplorerFolder>
-                      <ExplorerFolder title="笔记" icon={StickyNote}>
-                        <ExplorerFile title={report.ticker === '600519' ? "核心壁垒分析" : "Competitor Analysis"} icon={StickyNote} />
-                      </ExplorerFolder>
-                    </ExplorerFolder>
-                  ))}
-                </ExplorerFolder>
-                </ExplorerFolder>
+                {leftNavTab === 'tree' && (
+                  <div className="px-2">
+                    {portfolioTree.map(node => <RenderNode key={node.id} node={node} />)}
+                  </div>
+                )}
 
-                <ExplorerFolder title="对话历史" icon={History}>
-                  {chatHistory.map((chat, index) => (
-                    <ExplorerFile
-                      key={index}
-                      title={chat.content.substring(0, 30) + "..."}
-                      icon={chat.role === 'user' ? User : Terminal}
-                    />
-                  ))}
-                </ExplorerFolder>
-
-
+                {leftNavTab === 'recent' && (
+                  <div className="px-2 space-y-1">
+                    {visitHistory.length > 0 ? (
+                      visitHistory
+                        .sort((a, b) => b.lastAccessedAt - a.lastAccessedAt)
+                        .map(item => (
+                          <div 
+                            key={item.id} 
+                            className="flex items-center justify-between p-2 rounded hover:bg-claude-ai cursor-pointer"
+                            onClick={() => openReport(item.uniqueId)}
+                          >
+                            <span className="text-sm text-claude-text-primary font-medium">{item.companyName}</span>
+                            <span className="text-xs text-claude-text-secondary">{formatRelativeTime(item.lastAccessedAt)}</span>
+                          </div>
+                        ))
+                    ) : (
+                      <div className='p-4 text-center text-xs text-claude-text-secondary'>
+                        <p>暂无访问记录</p>
+                        <p className='opacity-60'>点击公司即可生成历史</p>
+                      </div>
+                    )}
+                  </div>
+                )}
               </div>
             </motion.aside>
           )}
