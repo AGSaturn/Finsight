@@ -51,7 +51,7 @@
     @apply bg-claude-accent/10 text-claude-accent font-semibold;
   }
   .resizer {
-    @apply w-[1px] hover:w-[2px] bg-claude-border hover:bg-claude-accent transition-all cursor-col-resize z-10;
+    @apply w-px hover:w-[2px] bg-claude-border hover:bg-claude-accent transition-all cursor-col-resize z-10;
   }
   .workbench-container {
     @apply flex-1 flex flex-col bg-claude-paper;

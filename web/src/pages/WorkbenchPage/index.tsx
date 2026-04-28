@@ -23,9 +23,9 @@ import {
 } from 'lucide-react';
 // 【修改1】修正 Framer Motion 导入路径
 import { motion, AnimatePresence } from 'framer-motion';
-import { GoogleGenAI } from "@google/genai";
+import { DndContext, closestCenter, DragOverlay, PointerSensor, useSensor, useSensors } from '@dnd-kit/core';
 import { MOCK_REPORTS } from '../../data';
-import { FinancialData, ChatMessage, Note } from '../../types';
+import { FinancialData, ChatMessage, Note, PortfolioNode } from '../../types';
 import ExplorerFolder from './ExplorerFolder';
 import ExplorerFile from './ExplorerFile';
 import SelectionButton from './SelectionButton';
@@ -34,19 +34,9 @@ import SlashCommandItem from './SlashCommandItem';
 import ChatBubble from './ChatBubble';
 import InlineNote from './InlineNote';
 
-// PRD: 定义数据结构
-interface PortfolioNode {
-  id: string; 
-  type: 'folder' | 'stock';
-  name: string; 
-  parentId: string | null; 
-  order: number; 
-  uniqueId?: string; 
-  // 前端特定状态
-  children?: PortfolioNode[];
-  isNew?: boolean; // 用于新建文件夹时的编辑状态
-  newReport?: boolean; // PRD: 新财报蓝点
-}
+
+
+
 
 interface VisitHistoryRecord {
   id: string;
@@ -56,7 +46,7 @@ interface VisitHistoryRecord {
 }
 
 // Mock model selection for better context
-const MODEL_NAME = "gemini-3-flash-preview";
+
 
 export default function WorkbenchPage() {
   const [leftSidebarVisible, setLeftSidebarVisible] = useState(true);
@@ -80,6 +70,16 @@ export default function WorkbenchPage() {
   const [leftNavTab, setLeftNavTab] = useState<'tree' | 'recent'>('tree');
   const [contextMenu, setContextMenu] = useState<{ x: number, y: number, nodeId: string } | null>(null);
   const [editingNodeId, setEditingNodeId] = useState<string | null>(null);
+  const [activeDragId, setActiveDragId] = useState<string | null>(null);
+
+  const sensors = useSensors(
+    useSensor(PointerSensor, {
+      activationConstraint: {
+        delay: 200,
+        tolerance: 5,
+      },
+    })
+  );
 
   // PRD: 模拟 IndexedDB 数据
   const [portfolioNodes, setPortfolioNodes] = useState<PortfolioNode[]>([
@@ -202,11 +202,61 @@ export default function WorkbenchPage() {
   };
 
   const handleMoveNode = (id: string, newParentId: string | null) => {
-    // TODO: PRD 2.6 - 实现移动节点
-    // 1. 更新节点的 parentId
-    // 2. 更新 portfolioNodes 状态
-    // 3. 更新 IndexedDB
-    console.log(`Moving node ${id} to ${newParentId}`);
+    console.log(`handleMoveNode called: Moving node ${id} to parent ${newParentId}`);
+    setPortfolioNodes(prev => {
+      const nodeToMove = prev.find(n => n.id === id);
+      if (!nodeToMove) {
+        console.error("Node to move not found!");
+        return prev;
+      }
+
+      const newNodes = prev.map(n => 
+        n.id === id ? { ...n, parentId: newParentId } : n
+      );
+
+      // Re-order nodes in the new parent
+      const siblings = newNodes.filter(n => n.parentId === newParentId);
+      siblings.forEach((sibling, index) => {
+        const nodeInNewNodes = newNodes.find(n => n.id === sibling.id);
+        if (nodeInNewNodes) {
+          nodeInNewNodes.order = index;
+        }
+      });
+      
+      console.log("New portfolioNodes state:", newNodes);
+      return newNodes;
+    });
+  };
+
+  const handleDragEnd = (event: any) => {
+    console.log("--- Drag End ---", event);
+    const { active, over } = event;
+
+    if (over && active.id !== over.id) {
+      const activeNode = portfolioNodes.find(n => n.id === active.id);
+      const overNode = portfolioNodes.find(n => n.id === over.id);
+
+      console.log("Active Node:", activeNode);
+      console.log("Over Node:", overNode);
+
+      if (activeNode && overNode) {
+        // If dropping on a folder, move the item inside
+        if (overNode.type === 'folder') {
+          console.log(`Attempting to move [${active.id}] into folder [${over.id}]`);
+          handleMoveNode(active.id, over.id);
+        } else {
+          // If dropping on a file, move to the same folder and re-order
+          console.log(`Attempting to move [${active.id}] into same folder as [${over.id}] (parent: ${overNode.parentId})`);
+          handleMoveNode(active.id, overNode.parentId);
+        }
+      }
+    }
+    setActiveDragId(null);
+  };
+
+  const handleDragStart = (event: any) => {
+    console.log("--- Drag Start ---", event);
+    setActiveDragId(event.active.id);
   };
 
   const handleRenameNode = (id: string, newName: string) => {
@@ -233,16 +283,7 @@ export default function WorkbenchPage() {
 
   // --- End of Placeholders ---
 
-  // 【修改2】安全初始化 Google GenAI
-  const ai = useMemo(() => {
-    const apiKey = process.env.GEMINI_API_KEY;
-    if (!apiKey) {
-      console.warn("GEMINI_API_KEY is not set in environment variables.");
-      // 返回一个 mock 对象防止崩溃，或者你可以抛出错误
-      return {} as GoogleGenAI;
-    }
-    return new GoogleGenAI({ apiKey });
-  }, []);
+
 
   const mainRef = useRef<HTMLDivElement>(null);
   const chatBottomRef = useRef<HTMLDivElement>(null);
@@ -286,34 +327,15 @@ export default function WorkbenchPage() {
   };
 
   const handleAskAI = async (input: string, contextOverride?: string) => {
-    // 【修改3】增加 API Key 存在性检查
-    if (!process.env.GEMINI_API_KEY) {
-      setChatHistory(prev => [...prev, { role: 'assistant', content: "Configuration Error: API Key missing." }]);
-      return;
-    }
-
     const context = contextOverride || selection?.text;
-    const fullPrompt = context ? `Context: ${context}\n\nQuestion: ${input}` : input;
-    
     setChatHistory(prev => [...prev, { role: 'user', content: input }]);
     setIsTyping(true);
     setSelection(null);
 
-    try {
-      const result = await ai.getGenerativeModel({ model: MODEL_NAME }).generateContent({
-        contents: [{ role: 'user', parts: [{ text: fullPrompt }] }],
-        systemInstruction: "You are a professional financial analyst. Provide clear, data-driven answers. Focus on identifying trends, risks, and key metrics. If context is provided, prioritize it. Maintain a technical yet authoritative tone. Use markdown formatting for clarity. When quoting values, mention if they are based on specific reports.",
-      });
-      
-      const response = await result.response;
-      const responseText = response.text() || "Insufficient data for detailed analysis.";
-      setChatHistory(prev => [...prev, { role: 'assistant', content: responseText, sources: context ? [activeReport.period] : [] }]);
-    } catch (error) {
-      console.error(error);
-      setChatHistory(prev => [...prev, { role: 'assistant', content: "INTELLIGENCE NODE ERROR: Link interrupted." }]);
-    } finally {
+    setTimeout(() => {
+      setChatHistory(prev => [...prev, { role: 'assistant', content: "AI 功能当前已禁用。" }]);
       setIsTyping(false);
-    }
+    }, 500);
   };
 
   const openReport = (ticker: string) => {
@@ -369,8 +391,7 @@ export default function WorkbenchPage() {
       }
       return (
         <ExplorerFolder
-          title={node.name}
-          icon={Folder}
+          node={node}
           isOpen={expandedKeys.has(node.id)}
           onToggle={() => toggleFolder(node.id)}
           onAddNode={(e) => { e.stopPropagation(); handleAddNode('folder', node.id); }}
@@ -384,11 +405,10 @@ export default function WorkbenchPage() {
     if (node.type === 'stock') {
       return (
         <ExplorerFile
-          title={node.name}
+          node={node}
           active={activeTabId === node.uniqueId}
           onClick={() => openReport(node.uniqueId!)}
           status={openTabs.includes(node.uniqueId!) ? "opened" : undefined}
-          newReport={node.newReport}
         />
       );
     }
@@ -469,9 +489,23 @@ export default function WorkbenchPage() {
               
               <div className="flex-1 overflow-y-auto py-2">
                 {leftNavTab === 'tree' && (
-                  <div className="px-2">
-                    {portfolioTree.map(node => <RenderNode key={node.id} node={node} />)}
-                  </div>
+                  <DndContext sensors={sensors} collisionDetection={closestCenter} onDragStart={handleDragStart} onDragEnd={handleDragEnd}>
+                    <div className="px-2">
+                      {portfolioTree.map(node => <RenderNode key={node.id} node={node} />)}
+                    </div>
+                    <DragOverlay>
+                      {activeDragId ? (
+                        (() => {
+                          const activeNode = portfolioNodes.find(n => n.id === activeDragId);
+                          if (!activeNode) return null;
+                          if (activeNode.type === 'folder') {
+                            return <div className="bg-claude-sidebar p-1.5 rounded shadow-lg flex items-center"><Folder className="w-4 h-4 mr-2 shrink-0" />{activeNode.name}</div>;
+                          }
+                          return <div className="bg-claude-sidebar p-1.5 rounded shadow-lg flex items-center"><FileText className="w-4 h-4 mr-2 shrink-0" />{activeNode.name}</div>;
+                        })()
+                      ) : null}
+                    </DragOverlay>
+                  </DndContext>
                 )}
 
                 {leftNavTab === 'recent' && (

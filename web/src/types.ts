@@ -19,3 +19,15 @@ export interface ChatMessage {
   content: string;
   sources?: string[];
 }
+
+export interface PortfolioNode {
+  id: string; 
+  type: 'folder' | 'stock';
+  name: string; 
+  parentId: string | null; 
+  order: number; 
+  uniqueId?: string; 
+  children?: PortfolioNode[];
+  isNew?: boolean;
+  newReport?: boolean;
+}
