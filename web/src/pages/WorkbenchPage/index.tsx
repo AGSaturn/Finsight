@@ -370,32 +370,15 @@ export default function WorkbenchPage() {
   // PRD: 递归渲染节点组件
   const RenderNode: React.FC<{ node: PortfolioNode }> = ({ node }) => {
     if (node.type === 'folder') {
-      if (node.isNew || editingNodeId === node.id) {
-        return (
-          <div className="flex items-center p-1.5 pl-3">
-            <Folder className="w-4 h-4 mr-2 shrink-0" />
-            <input
-              type="text"
-              defaultValue={node.name}
-              autoFocus
-              onBlur={(e) => handleRenameNode(node.id, e.target.value)}
-              onKeyDown={(e) => {
-                if (e.key === 'Enter') {
-                  handleRenameNode(node.id, (e.target as HTMLInputElement).value);
-                }
-              }}
-              className="bg-claude-ai border border-claude-accent rounded px-1 py-0.5 text-sm w-full"
-            />
-          </div>
-        )
-      }
       return (
         <ExplorerFolder
           node={node}
           isOpen={expandedKeys.has(node.id)}
+          isEditing={editingNodeId === node.id || node.isNew}
           onToggle={() => toggleFolder(node.id)}
           onAddNode={(e) => { e.stopPropagation(); handleAddNode('folder', node.id); }}
           onMoreClick={(e) => handleContextMenu(e, node.id)}
+          onRename={(newName) => handleRenameNode(node.id, newName)}
         >
           {node.children?.sort((a,b) => a.order - b.order).map(child => <RenderNode key={child.id} node={child} />)}
         </ExplorerFolder>
