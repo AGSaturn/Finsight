@@ -26,7 +26,7 @@ function ExplorerFolder({ node, children, isOpen, onToggle, onAddNode, onMoreCli
         ref={setNodeRef} 
         {...listeners} 
         {...attributes} 
-        className={`tree-node group ${isOver ? 'bg-claude-blue/10' : ''}`}
+        className={`tree-node group transition-colors ${isOver ? 'bg-blue-500/20' : ''}`}
         style={{ opacity: isDragging ? 0.5 : 1 }}
         onClick={onToggle}
       >
