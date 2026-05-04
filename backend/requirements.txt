@@ -7,3 +7,4 @@ aiosqlite>=0.20.0
 python-dotenv>=1.0.0
 python-multipart>=0.0.12
 passlib[bcrypt]>=1.7.0
+itsdangerous>=2.2.0
