@@ -9,6 +9,7 @@ from fastapi.responses import RedirectResponse
 from jose import JWTError, jwt
 
 from database import get_db
+from models import UserOut
 
 load_dotenv()
 
@@ -62,7 +63,11 @@ async def auth_google_callback(request: Request):
     if request.query_params.get("error"):
         return RedirectResponse(url=f"{FRONTEND_URL}/?error=access_denied")
 
-    token = await oauth.google.authorize_access_token(request)
+    try:
+        token = await oauth.google.authorize_access_token(request)
+    except Exception:
+        return RedirectResponse(url=f"{FRONTEND_URL}/?error=oauth_failed")
+
     userinfo = token.get("userinfo")
     if not userinfo:
         raise HTTPException(status_code=400, detail="Failed to get user info")
@@ -96,7 +101,7 @@ async def auth_google_callback(request: Request):
     return RedirectResponse(url=f"{FRONTEND_URL}/workbench?token={jwt_token}")
 
 
-@router.get("/me")
+@router.get("/me", response_model=UserOut)
 async def me(request: Request):
     payload = await get_user_from_token(request)
     async for db in get_db():
@@ -107,9 +112,9 @@ async def me(request: Request):
         row = await cursor.fetchone()
         if not row:
             raise HTTPException(status_code=401, detail="User not found")
-        return {
-            "id": row["id"],
-            "email": row["email"],
-            "name": row["name"],
-            "avatar_url": row["avatar_url"],
-        }
+        return UserOut(
+            id=row["id"],
+            email=row["email"],
+            name=row["name"],
+            avatar_url=row["avatar_url"],
+        )
