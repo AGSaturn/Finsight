@@ -6,6 +6,7 @@ interface AuthContextType {
   token: string | null;
   isAuthenticated: boolean;
   login: () => void;
+  loginWithPassword: (email: string, password: string) => Promise<void>;
   logout: () => void;
 }
 
@@ -52,6 +53,22 @@ export function AuthProvider({ children }: { children: React.ReactNode }) {
     window.location.href = '/api/auth/google';
   }, []);
 
+  const loginWithPassword = useCallback(async (email: string, password: string) => {
+    const res = await fetch('/api/auth/login', {
+      method: 'POST',
+      headers: { 'Content-Type': 'application/json' },
+      body: JSON.stringify({ email, password }),
+    });
+    if (!res.ok) {
+      const err = await res.json().catch(() => ({ detail: 'Login failed' }));
+      throw new Error(err.detail || 'Login failed');
+    }
+    const data = await res.json();
+    localStorage.setItem(TOKEN_KEY, data.token);
+    setToken(data.token);
+    setUser(data.user as User);
+  }, []);
+
   const logout = useCallback(() => {
     localStorage.removeItem(TOKEN_KEY);
     setToken(null);
@@ -62,7 +79,7 @@ export function AuthProvider({ children }: { children: React.ReactNode }) {
 
   return (
     <AuthContext.Provider
-      value={{ user, token, isAuthenticated: !!user, login, logout }}
+      value={{ user, token, isAuthenticated: !!user, login, loginWithPassword, logout }}
     >
       {children}
     </AuthContext.Provider>
