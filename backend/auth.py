@@ -1,6 +1,6 @@
 import os
 import uuid
-from datetime import datetime, timedelta
+from datetime import datetime, timedelta, timezone
 
 from authlib.integrations.starlette_client import OAuth
 from dotenv import load_dotenv
@@ -33,7 +33,7 @@ def create_jwt(user_id: str, email: str) -> str:
     payload = {
         "sub": user_id,
         "email": email,
-        "exp": datetime.utcnow() + timedelta(days=7),
+        "exp": datetime.now(timezone.utc) + timedelta(days=7),
     }
     return jwt.encode(payload, JWT_SECRET, algorithm=JWT_ALGORITHM)
 
@@ -70,7 +70,7 @@ async def auth_google_callback(request: Request):
 
     userinfo = token.get("userinfo")
     if not userinfo:
-        raise HTTPException(status_code=400, detail="Failed to get user info")
+        return RedirectResponse(url=f"{FRONTEND_URL}/?error=missing_userinfo")
 
     async for db in get_db():
         cursor = await db.execute(
