@@ -8,6 +8,9 @@ from fastapi import APIRouter, HTTPException, Request
 from fastapi.responses import RedirectResponse
 from jose import JWTError, jwt
 
+import bcrypt
+from pydantic import BaseModel
+
 from database import get_db
 from models import UserOut
 
@@ -25,6 +28,11 @@ oauth.register(
     server_metadata_url="https://accounts.google.com/.well-known/openid-configuration",
     client_kwargs={"scope": "openid email profile"},
 )
+
+class LoginRequest(BaseModel):
+    email: str
+    password: str
+
 
 router = APIRouter(prefix="/api")
 
@@ -50,6 +58,33 @@ async def get_user_from_token(request: Request) -> dict:
     if not auth or not auth.startswith("Bearer "):
         raise HTTPException(status_code=401, detail="Missing token")
     return decode_jwt(auth.split("Bearer ")[1])
+
+
+@router.post("/auth/login")
+async def auth_login(request: LoginRequest):
+    async for db in get_db():
+        cursor = await db.execute(
+            "SELECT id, email, password_hash, name, avatar_url FROM users WHERE email = ?",
+            (request.email,),
+        )
+        row = await cursor.fetchone()
+
+        if not row or not row["password_hash"]:
+            raise HTTPException(status_code=401, detail="Invalid email or password")
+
+        if not bcrypt.checkpw(request.password.encode(), row["password_hash"].encode()):
+            raise HTTPException(status_code=401, detail="Invalid email or password")
+
+        token = create_jwt(row["id"], row["email"])
+        return {
+            "token": token,
+            "user": {
+                "id": row["id"],
+                "email": row["email"],
+                "name": row["name"],
+                "avatar_url": row["avatar_url"],
+            },
+        }
 
 
 @router.get("/auth/google")
