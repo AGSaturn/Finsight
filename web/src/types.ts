@@ -31,3 +31,10 @@ export interface PortfolioNode {
   isNew?: boolean;
   newReport?: boolean;
 }
+
+export interface User {
+  id: string;
+  email: string;
+  name: string | null;
+  avatar_url: string | null;
+}
