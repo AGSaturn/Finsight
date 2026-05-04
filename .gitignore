@@ -32,6 +32,11 @@ pnpm-debug.log*
 .DS_Store
 Thumbs.db
 
+# Python
+__pycache__/
+*.py[cod]
+venv/
+
 # Worktrees and superpowers
 .worktrees/
 .superpowers/
