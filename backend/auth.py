@@ -72,7 +72,7 @@ async def auth_login(request: LoginRequest):
         if not row or not row["password_hash"]:
             raise HTTPException(status_code=401, detail="Invalid email or password")
 
-        if not bcrypt.verify(request.password.encode(), row["password_hash"].encode()):
+        if not bcrypt.checkpw(request.password.encode(), row["password_hash"].encode()):
             raise HTTPException(status_code=401, detail="Invalid email or password")
 
         token = create_jwt(row["id"], row["email"])
